@@ -22,8 +22,8 @@ Code is versioned by Git. But the **environment** (the DB connection, the port, 
 
 ### Phase 1: The "Scope" (Project Detection)
 
-* [ ] Logic to identify the "Project Root" (look for `.git` or `go.mod`).
-* [ ] **Task:** Create a scanner that looks for `.env` files and parses keys (not values!) to track what config variables are required.
+* [-] Logic to identify the "Project Root" (look for `.git` or `go.mod`).
+* [-] **Task:** Create a scanner that looks for `.env` files and parses keys (not values!) to track what config variables are required.
 
 ### Phase 2: The "Process Link"
 
