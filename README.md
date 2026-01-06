@@ -1,10 +1,10 @@
-# Trace: Project-Level State Versioning (Still in Development)
+# Trace: Project-Level State Versioning (Phase 1 Complete)
 
 **Trace** is a developer tool that versions your **local development environment** at the project level. It ensures that if a project "worked yesterday," you can return to that exact environment state today.
 
 Trace focuses on the **Project Boundary**: it ignores your system-wide clutter and tracks only the ports, variables, and configs that belong to *this* codebase.
 
----
+***
 
 ## 🔍 The Goal: Stop "Environmental Drift"
 
@@ -16,30 +16,32 @@ Code is versioned by Git. But the **environment** (the DB connection, the port, 
 2. **Local Context:** Changes in `.env`, `.env.local`, or `config/` files within the project root.
 3. **Dependency State:** Tracking changes in `node_modules`, `venv`, or `go.mod` without committing them to Git.
 
----
+***
 
-## 🛠 Project Roadmap (Revised)
+## ✅ Phase 1: Config Tracking (Complete)
 
-### Phase 1: The "Scope" (Project Detection)
+- [x] **Project Root:** Uses current directory (`.git`/`go.mod` detection coming soon).
+- [x] **Config Scanner:** Parses `.env` keys (values never stored) + tracks any file content via `.trace/config.json`.
+- [x] **`trace init`:** Creates `.trace/` with `config.json` listing files to track (`.env` by default).
+- [x] **`trace snap`:** Captures env keys + file content hashes.
+- [x] **`trace diff`:** Compares snapshots (handles single snapshot as "all new").
 
-* [-] Logic to identify the "Project Root" (look for `.git` or `go.mod`).
-* [-] **Task:** Create a scanner that looks for `.env` files and parses keys (not values!) to track what config variables are required.
+## 🛠 Phase 2: Process & Port Detection
 
-### Phase 2: The "Process Link"
+* [ ] Filter system processes running inside project directory.
+* [ ] Match processes to active ports.
 
-* [ ] **Task:** Filter system processes to find only those running *inside* this project directory.
-* [ ] Match those processes to active ports.
+## 🛠 Phase 3: Full Snapshots & Watch Mode
 
-### Phase 3: The "Project Snap"
+* [ ] `trace snap "msg"` with descriptive labels.
+* [ ] `trace status` for current drift.
+* [ ] `trace watch` for background monitoring.
 
-* [ ] Command: `trace snap "before database migration"`.
-* [ ] This saves a JSON manifest of the project's "Health" at that moment.
-
----
+***
 
 ## 🚀 Getting Started
 
-### Installation (Go)
+### Installation
 
 ```bash
 git clone https://github.com/Shabari-K-S/trace.git
@@ -47,45 +49,54 @@ cd trace
 go build -o trace
 ```
 
-### Usage Concept
+### Usage
 
 ```bash
-# Initialize trace in your project folder
-trace init
+# Initialize in your project folder
+./trace init
 
-# Capture the current state
-trace snap "working setup"
+# Customize .trace/config.json to add files like:
+# "docker-compose.yml", "config/database.yml"
 
-# After a break or update, check for drift
-trace status
+# Capture current state
+./trace snap
+
+# Check for drift
+./trace diff
 ```
 
----
+**Example `trace diff` output:**
+```
+🔍 Only one snapshot found. Showing everything as newly added...
+ + [ENV ADDED]   DATABASE_URL
+ + [FILE ADDED]    .env
+```
 
-### 🔄 The Trace Lifecycle
+***
 
-Trace works alongside your development flow. Here is how it monitors your project's health:
+### 🔄 Trace Lifecycle
 
-1. **`trace init`**: Establish the project boundary. Trace identifies your root directory and ignores your global system noise.
-2. **`trace snap`**: Captures a "clean" state. It records your active project ports, `.env` keys, and current dependency versions.
-3. **`trace watch`**: A background mode that stays silent until something breaks. It notices if a port you need is suddenly taken by another process or if a config key is missing.
-4. **`trace diff`**: The "Time Machine." Compare your current broken state against your last successful `snap` to see the exact environmental drift.
+1. **`./trace init`**: Creates `.trace/config.json` defining tracked files.
+2. **`./trace snap`**: Records env keys + file content hashes.
+3. **`./trace diff`**: Compares snapshots, shows added/removed/modified env vars & files.
+4. **`./trace watch`** (coming soon): Background drift detection.
 
----
+***
 
 ### 🎯 Key Use Cases
 
-* **"The Morning After":** You start work on Monday, but the dev server won't boot. Run `trace diff` to see if a background update changed your environment over the weekend.
-* **"The New Contributor":** A new dev joins the team. They run `trace status` to see exactly which ports and env variables they are missing compared to the "Master Snap."
-* **"The Dependency Ghost":** You ran `npm install` and now everything is slow. Trace shows you which new background processes were spawned.
+- **"Morning After"**: `trace diff` shows what changed in `.env` or config files.
+- **"New Contributor"**: Run `trace diff` vs master snap to see missing setup.
+- **"Config Drift"**: Track changes in `docker-compose.yml` or local configs.
 
----
+***
 
 ### 🛡 Privacy & Security
 
-Trace is built with a **Security-First** mindset:
+- **Zero-Value Storage**: Only env **keys** and file **hashes** stored, never values or full content.
+- **Local Only**: Data stays in `.trace/` folder.
+- **Project Scoped**: Only tracks files listed in your config.
 
-* **Zero-Value Storage:** Trace records that `API_KEY` exists, but it *never* records the actual value of the key.
-* **Local Only:** No data ever leaves your machine. Your environment signatures are stored in a hidden `.trace` folder within your project.
-* **Process Isolation:** It only tracks processes that originate from or interact with your project directory.
+***
 
+**Next**: Port detection and `watch` mode. Star/follow for updates! 🚀
