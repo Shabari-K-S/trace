@@ -1,73 +1,141 @@
 package main
 
 import (
-    "fmt"
-    "log"
-    "os"
+	"fmt"
+	"os"
+	"strings"
 
-    "trace/internal/config"
-    "trace/internal/diff"
-    "trace/internal/snapshot"
-    "trace/internal/store"
+	"trace/internal/cli"
 )
 
+const version = "2.0.0"
+
+const helpText = `Trace - Git-like environment versioning
+
+Usage: trace <command> [options]
+
+Commands:
+  init                Initialize trace repository in current directory
+  snap <message>      Create a snapshot with the given message
+  log [-n <count>]    Show commit history
+  status              Show current environment drift from HEAD
+  diff [commit]       Compare working environment with a commit
+  restore [options]   Restore tracked files to a previous state
+  checkout <ref>      Switch to a branch or commit
+  branch [name]       List, create, or delete branches
+
+Restore Options:
+  --commit <hash>     Restore from specific commit (default: HEAD)
+  --no-backup         Don't create backup files before restoring
+  <file>...           Restore only specific files
+
+Examples:
+  trace init
+  trace snap "initial environment setup"
+  trace log -n 5
+  trace status
+  trace diff HEAD~1
+  trace restore
+  trace restore --commit abc123 .env
+  trace branch staging
+  trace checkout main
+
+Version: %s
+`
+
 func main() {
-    if len(os.Args) < 2 {
-        fmt.Println("Usage: trace [snap | init | diff]")
-        return
-    }
+	if len(os.Args) < 2 {
+		fmt.Printf(helpText, version)
+		return
+	}
 
-    command := os.Args[1]
+	command := os.Args[1]
+	args := os.Args[2:]
 
-    switch command {
-    case "init":
-        if err := store.Init(); err != nil {
-            log.Fatal(err)
-        }
-        if err := config.InitConfig(); err != nil {
-            log.Fatal(err)
-        }
-        fmt.Println("Initialized Trace repo in .trace/ with default config.json")
+	var err error
 
-    case "snap":
-        state, err := snapshot.Collect()
-        if err != nil {
-            log.Fatal(err)
-        }
+	switch command {
+	case "init":
+		err = cli.Init()
 
-        if err := store.SaveSnap(state); err != nil {
-            fmt.Println("Failed to save snap:", err)
-        } else {
-            fmt.Println("📸 Snapshot captured and stored in .trace/snaps/")
-        }
+	case "snap":
+		message := strings.Join(args, " ")
+		err = cli.Snap(message)
 
-    case "diff":
-        prev, curr, err := store.GetLatestStates()
-        if err != nil {
-            fmt.Println("Error:", err)
-            return
-        }
+	case "log":
+		count := 0
+		for i, arg := range args {
+			if arg == "-n" && i+1 < len(args) {
+				fmt.Sscanf(args[i+1], "%d", &count)
+				break
+			}
+		}
+		err = cli.Log(count)
 
-		if prev == nil && curr != nil {
-			fmt.Println("🔍 Only one snapshot found. Showing everything as newly added compared to an empty baseline.\n")
+	case "status":
+		err = cli.Status()
 
-			addedEnv := curr.EnvKeys
-			diff.RenderDiffEnv(addedEnv, nil)
+	case "diff":
+		target := ""
+		if len(args) > 0 {
+			target = args[0]
+		}
+		err = cli.Diff(target)
 
-			fileDiff := diff.CompareFiles(nil, curr.Files)
-			diff.RenderDiffFiles(fileDiff)
-			return
+	case "restore":
+		opts := cli.RestoreOptions{}
+		var files []string
+		for i := 0; i < len(args); i++ {
+			switch args[i] {
+			case "--commit":
+				if i+1 < len(args) {
+					opts.CommitRef = args[i+1]
+					i++
+				}
+			case "--no-backup":
+				opts.NoBackup = true
+			default:
+				files = append(files, args[i])
+			}
+		}
+		opts.Files = files
+		err = cli.Restore(opts)
+
+	case "checkout":
+		if len(args) < 1 {
+			err = fmt.Errorf("usage: trace checkout <branch|commit>")
+		} else {
+			err = cli.Checkout(args[0])
 		}
 
-        fmt.Println("🔍 Comparing last two snapshots...")
+	case "branch":
+		name := ""
+		delete := false
+		for i := 0; i < len(args); i++ {
+			if args[i] == "-d" || args[i] == "--delete" {
+				delete = true
+			} else if name == "" {
+				name = args[i]
+			}
+		}
+		err = cli.Branch(name, delete)
 
-		fileDiff := diff.CompareFiles(prev.Files, curr.Files)
-		diff.RenderDiffFiles(fileDiff)
+	case "help", "--help", "-h":
+		fmt.Printf(helpText, version)
+		return
 
-        added, removed := diff.CompareEnv(prev.EnvKeys, curr.EnvKeys)
-        diff.RenderDiffEnv(added, removed)
+	case "version", "--version", "-v":
+		fmt.Println("trace version", version)
+		return
 
-    default:
-        fmt.Printf("Unknown command: %s\n", command)
-    }
+	default:
+		fmt.Printf("Unknown command: %s\n", command)
+		fmt.Println("Run 'trace help' for usage information.")
+		os.Exit(1)
+	}
+
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
+	}
 }
