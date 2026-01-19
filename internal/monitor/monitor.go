@@ -86,3 +86,19 @@ func GetProcessPorts(pid int32) ([]int, error) {
 
 	return ports, nil
 }
+
+// FindPidByPort returns the PID of the process listening on the given port.
+func FindPidByPort(port int) (int32, error) {
+	connections, err := net.Connections("tcp")
+	if err != nil {
+		return 0, fmt.Errorf("list connections: %w", err)
+	}
+
+	for _, conn := range connections {
+		if conn.Status == "LISTEN" && int(conn.Laddr.Port) == port {
+			return conn.Pid, nil
+		}
+	}
+
+	return 0, fmt.Errorf("no process found listening on port %d", port)
+}

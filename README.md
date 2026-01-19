@@ -18,24 +18,23 @@ Code is versioned by Git. But the **environment** (the DB connection, the port, 
 
 ***
 
-## ✅ Phase 1: Config Tracking (Complete)
 
-- [x] **Project Root:** Uses current directory (`.git`/`go.mod` detection coming soon).
-- [x] **Config Scanner:** Parses `.env` keys (values never stored) + tracks any file content via `.trace/config.json`.
-- [x] **`trace init`:** Creates `.trace/` with `config.json` listing files to track (`.env` by default).
-- [x] **`trace snap`:** Captures env keys + file content hashes.
-- [x] **`trace diff`:** Compares snapshots (handles single snapshot as "all new").
+## ✅ Features
 
-## ✅ Phase 2: Process & Port Detection (Complete)
+### 1. Project-Level Isolation
+Trace ignores system-wide clutter and tracks only what matters for *this* codebase. It works from any subdirectory within the project properly detecting the root.
 
-- [x] Filter system processes running inside project directory.
-- [x] Match processes to active ports.
+### 2. Config & File Tracking
+- **`trace init`**: Creates `.trace/config.json`.
+- **`trace track <file>`**: Adds files to be tracked (e.g., `.env`, `docker-compose.yml`).
+- **`trace snap`**: Captures env keys + file content hashes.
+- **`trace diff`**: Compares snapshots.
 
-## ✅ Phase 3: Full Snapshots & Watch Mode (Complete)
+### 3. Process & Port Detection
+- **`trace status`**: Detecting running processes started from the project directory and their active ports.
 
-- [x] `trace snap "msg"` with descriptive labels.
-- [x] `trace status` for current drift.
-- [x] `trace watch` for background monitoring.
+### 4. Watch Mode
+- **`trace watch`**: Real-time monitoring of environment drift and process health.
 
 ***
 
@@ -46,7 +45,9 @@ Code is versioned by Git. But the **environment** (the DB connection, the port, 
 ```bash
 git clone https://github.com/Shabari-K-S/trace.git
 cd trace
-go build -o trace
+make build
+# or to install to $GOPATH/bin
+# make install
 ```
 
 ### Usage

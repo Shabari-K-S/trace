@@ -17,9 +17,11 @@ Usage: trace <command> [options]
 
 Commands:
   init                Initialize trace repository in current directory
+  track <file>...     Add files to tracking list
   snap <message>      Create a snapshot with the given message
   log [-n <count>]    Show commit history
   status              Show current environment drift from HEAD
+  kill <port|pid>     Kill a process by Port or PID
   watch               Monitor for changes in real-time
   diff [commit]       Compare working environment with a commit
   restore [options]   Restore tracked files to a previous state
@@ -81,9 +83,6 @@ func main() {
 				if d, parseErr := time.ParseDuration(args[i+1]); parseErr == nil {
 					interval = d
 				} else {
-					// Fallback if not string, maybe seconds int?
-					// But ParseDuration handles "2s".
-					// Just print warning?
 					fmt.Printf("Invalid interval %s, using default 2s\n", args[i+1])
 				}
 				break
@@ -91,8 +90,18 @@ func main() {
 		}
 		err = cli.Watch(interval)
 
+	case "track":
+		err = cli.Track(args)
+
 	case "status":
 		err = cli.Status()
+
+	case "kill":
+		if len(args) < 1 {
+			err = fmt.Errorf("usage: trace kill <port|pid>")
+		} else {
+			err = cli.Kill(args[0])
+		}
 
 	case "diff":
 		target := ""

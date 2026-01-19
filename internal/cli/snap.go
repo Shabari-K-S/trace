@@ -71,6 +71,11 @@ func collectSnapshot() (core.Snapshot, error) {
 	for _, file := range cfg.TrackedFiles {
 		path := filepath.Clean(file)
 
+		ignored, _ := core.ShouldIgnore(path)
+		if ignored {
+			continue
+		}
+
 		// Read file content
 		content, err := os.ReadFile(path)
 		if err != nil {

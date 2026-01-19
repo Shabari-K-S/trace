@@ -5,16 +5,23 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"trace/internal/core"
 )
 
 const TraceDir = ".trace"
-const ConfigFile = ".trace/config.json"
 
 // Config defines the trace configuration.
 type Config struct {
 	TrackedFiles    []string `json:"tracked_files"`
 	DefaultBranch   string   `json:"default_branch,omitempty"`
 	BackupOnRestore bool     `json:"backup_on_restore,omitempty"`
+	Hooks           Hooks    `json:"hooks,omitempty"`
+}
+
+// Hooks defines commands to run around lifecycle events.
+type Hooks struct {
+	PreRestore  string `json:"pre_restore,omitempty"`
+	PostRestore string `json:"post_restore,omitempty"`
 }
 
 // DefaultConfig returns the default configuration.
@@ -33,7 +40,11 @@ func InitConfig() error {
 	}
 
 	// Do not overwrite existing config
-	if _, err := os.Stat(ConfigFile); err == nil {
+	path, err := getConfigPath()
+	if err != nil {
+		return err
+	}
+	if _, err := os.Stat(path); err == nil {
 		return nil
 	}
 
@@ -41,18 +52,44 @@ func InitConfig() error {
 	return Save(cfg)
 }
 
+func getConfigPath() (string, error) {
+	root, err := core.FindProjectRoot()
+	if err != nil {
+		// If root not found, default to current directory but warn/error might be better?
+		// For now, let's stick to CWD if root finding fails to avoid breaking non-project usage?
+		// Actually, trace is project-scoped. If no root, we might want to default to CWD
+		// so `init` works.
+		// `init` creates .trace in CWD.
+		// So if FindProjectRoot fails, we assume CWD for now, but `init` logic should be separate.
+		// Let's assume ConfigFile is relative to root if found.
+		// Let's assume ConfigFile is relative to root if found.
+		return ".trace/config.json", nil
+	}
+	return filepath.Join(root, TraceDir, "config.json"), nil
+}
+
 // Save writes the config to disk.
 func Save(cfg Config) error {
+	path, err := getConfigPath()
+	if err != nil {
+		return err
+	}
+
 	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(ConfigFile, data, 0644)
+	return os.WriteFile(path, data, 0644)
 }
 
 // Load reads .trace/config.json, returns default if missing.
 func Load() (Config, error) {
-	data, err := os.ReadFile(ConfigFile)
+	path, err := getConfigPath()
+	if err != nil {
+		return Config{}, err
+	}
+
+	data, err := os.ReadFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return DefaultConfig(), nil

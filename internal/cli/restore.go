@@ -3,6 +3,7 @@ package cli
 import (
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -48,6 +49,13 @@ func Restore(opts RestoreOptions) error {
 	// Load config for backup setting
 	cfg, _ := config.Load()
 	createBackup := cfg.BackupOnRestore && !opts.NoBackup
+
+	// Pre-Restore Hook
+	if cfg.Hooks.PreRestore != "" {
+		if err := runHook("Pre-Restore", cfg.Hooks.PreRestore); err != nil {
+			return err
+		}
+	}
 
 	// Determine which files to restore
 	filesToRestore := make(map[string]string)
@@ -114,6 +122,25 @@ func Restore(opts RestoreOptions) error {
 	}
 
 	fmt.Printf("\n✨ Restored %d file(s)\n", restored)
+
+	// Post-Restore Hook
+	if cfg.Hooks.PostRestore != "" {
+		if err := runHook("Post-Restore", cfg.Hooks.PostRestore); err != nil {
+			fmt.Printf("⚠️  Post-Restore hook failed: %v\n", err)
+		}
+	}
+
+	return nil
+}
+
+func runHook(name, command string) error {
+	fmt.Printf("🪝  Running %s hook: %s\n", name, command)
+	cmd := exec.Command("sh", "-c", command)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	if err := cmd.Run(); err != nil {
+		return fmt.Errorf("hook execution failed: %w", err)
+	}
 	return nil
 }
 
