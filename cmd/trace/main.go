@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"trace/internal/cli"
 )
@@ -19,6 +20,7 @@ Commands:
   snap <message>      Create a snapshot with the given message
   log [-n <count>]    Show commit history
   status              Show current environment drift from HEAD
+  watch               Monitor for changes in real-time
   diff [commit]       Compare working environment with a commit
   restore [options]   Restore tracked files to a previous state
   checkout <ref>      Switch to a branch or commit
@@ -71,6 +73,23 @@ func main() {
 			}
 		}
 		err = cli.Log(count)
+
+	case "watch":
+		interval := 2 * time.Second
+		for i, arg := range args {
+			if (arg == "-i" || arg == "--interval") && i+1 < len(args) {
+				if d, parseErr := time.ParseDuration(args[i+1]); parseErr == nil {
+					interval = d
+				} else {
+					// Fallback if not string, maybe seconds int?
+					// But ParseDuration handles "2s".
+					// Just print warning?
+					fmt.Printf("Invalid interval %s, using default 2s\n", args[i+1])
+				}
+				break
+			}
+		}
+		err = cli.Watch(interval)
 
 	case "status":
 		err = cli.Status()

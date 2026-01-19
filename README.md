@@ -26,16 +26,16 @@ Code is versioned by Git. But the **environment** (the DB connection, the port, 
 - [x] **`trace snap`:** Captures env keys + file content hashes.
 - [x] **`trace diff`:** Compares snapshots (handles single snapshot as "all new").
 
-## 🛠 Phase 2: Process & Port Detection
+## ✅ Phase 2: Process & Port Detection (Complete)
 
-* [ ] Filter system processes running inside project directory.
-* [ ] Match processes to active ports.
+- [x] Filter system processes running inside project directory.
+- [x] Match processes to active ports.
 
-## 🛠 Phase 3: Full Snapshots & Watch Mode
+## ✅ Phase 3: Full Snapshots & Watch Mode (Complete)
 
-* [ ] `trace snap "msg"` with descriptive labels.
-* [ ] `trace status` for current drift.
-* [ ] `trace watch` for background monitoring.
+- [x] `trace snap "msg"` with descriptive labels.
+- [x] `trace status` for current drift.
+- [x] `trace watch` for background monitoring.
 
 ***
 

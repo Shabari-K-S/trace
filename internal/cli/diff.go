@@ -2,6 +2,7 @@ package cli
 
 import (
 	"fmt"
+	"os"
 
 	"trace/internal/core"
 	"trace/internal/diff"
@@ -58,11 +59,11 @@ func Diff(target string) error {
 	}
 
 	if !fileDiff.IsEmpty() {
-		diff.RenderFileDiff(fileDiff)
+		diff.RenderFileDiff(os.Stdout, fileDiff)
 	}
 
 	if !envDiff.IsEmpty() {
-		diff.RenderEnvDiff(envDiff)
+		diff.RenderEnvDiff(os.Stdout, envDiff)
 	}
 
 	return nil
@@ -100,11 +101,11 @@ func DiffCommits(from, to string) error {
 	}
 
 	if !fileDiff.IsEmpty() {
-		diff.RenderFileDiff(fileDiff)
+		diff.RenderFileDiff(os.Stdout, fileDiff)
 	}
 
 	if !envDiff.IsEmpty() {
-		diff.RenderEnvDiff(envDiff)
+		diff.RenderEnvDiff(os.Stdout, envDiff)
 	}
 
 	return nil

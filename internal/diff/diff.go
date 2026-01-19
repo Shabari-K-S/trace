@@ -2,6 +2,7 @@ package diff
 
 import (
 	"fmt"
+	"io"
 
 	"trace/internal/core"
 )
@@ -96,36 +97,36 @@ func CompareSnapshots(old, new *core.Snapshot) (EnvDiff, FileDiff) {
 }
 
 // RenderEnvDiff prints environment differences.
-func RenderEnvDiff(d EnvDiff) {
+func RenderEnvDiff(w io.Writer, d EnvDiff) {
 	if len(d.Added) == 0 && len(d.Removed) == 0 && len(d.Changed) == 0 {
 		return
 	}
 
 	for _, k := range d.Added {
-		fmt.Printf("  \033[32m+ [ENV ADDED]\033[0m   %s\n", k)
+		fmt.Fprintf(w, "  \033[32m+ [ENV ADDED]\033[0m   %s\n", k)
 	}
 	for _, k := range d.Removed {
-		fmt.Printf("  \033[31m- [ENV REMOVED]\033[0m %s\n", k)
+		fmt.Fprintf(w, "  \033[31m- [ENV REMOVED]\033[0m %s\n", k)
 	}
 	for _, k := range d.Changed {
-		fmt.Printf("  \033[33m* [ENV CHANGED]\033[0m %s\n", k)
+		fmt.Fprintf(w, "  \033[33m* [ENV CHANGED]\033[0m %s\n", k)
 	}
 }
 
 // RenderFileDiff prints file differences.
-func RenderFileDiff(d FileDiff) {
+func RenderFileDiff(w io.Writer, d FileDiff) {
 	if len(d.Added) == 0 && len(d.Removed) == 0 && len(d.Modified) == 0 {
 		return
 	}
 
 	for _, p := range d.Added {
-		fmt.Printf("  \033[32m+ [FILE ADDED]\033[0m    %s\n", p)
+		fmt.Fprintf(w, "  \033[32m+ [FILE ADDED]\033[0m    %s\n", p)
 	}
 	for _, p := range d.Removed {
-		fmt.Printf("  \033[31m- [FILE REMOVED]\033[0m  %s\n", p)
+		fmt.Fprintf(w, "  \033[31m- [FILE REMOVED]\033[0m  %s\n", p)
 	}
 	for _, p := range d.Modified {
-		fmt.Printf("  \033[33m* [FILE MODIFIED]\033[0m %s\n", p)
+		fmt.Fprintf(w, "  \033[33m* [FILE MODIFIED]\033[0m %s\n", p)
 	}
 }
 
