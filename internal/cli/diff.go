@@ -3,6 +3,9 @@ package cli
 import (
 	"fmt"
 	"os"
+	"strings"
+
+	"github.com/mattn/go-isatty"
 
 	"trace/internal/core"
 	"trace/internal/diff"
@@ -35,7 +38,6 @@ func Diff(target string) error {
 		if err != nil {
 			return fmt.Errorf("load HEAD: %w", err)
 		}
-		fmt.Printf("🔍 Comparing working environment with HEAD (%s)\n\n", targetCommit.ShortHash())
 	} else {
 		// Resolve target reference
 		targetHash, err := store.ResolveCommit(target)
@@ -47,7 +49,6 @@ func Diff(target string) error {
 		if err != nil {
 			return fmt.Errorf("load commit: %w", err)
 		}
-		fmt.Printf("🔍 Comparing working environment with %s (%s)\n\n", target, targetCommit.ShortHash())
 	}
 
 	// Compare
@@ -58,14 +59,31 @@ func Diff(target string) error {
 		return nil
 	}
 
+	// Render to string
+	var sb strings.Builder
+	if target == "" {
+		sb.WriteString(fmt.Sprintf("🔍 Comparing working environment with HEAD (%s)\n\n", targetCommit.ShortHash()))
+	} else {
+		sb.WriteString(fmt.Sprintf("🔍 Comparing working environment with %s (%s)\n\n", target, targetCommit.ShortHash()))
+	}
+
 	if !fileDiff.IsEmpty() {
-		diff.RenderFileDiff(os.Stdout, fileDiff)
+		diff.RenderFileDiff(&sb, fileDiff)
 	}
 
 	if !envDiff.IsEmpty() {
-		diff.RenderEnvDiff(os.Stdout, envDiff)
+		diff.RenderEnvDiff(&sb, envDiff)
 	}
 
+	output := sb.String()
+
+	// interactive mode
+	if isatty.IsTerminal(os.Stdout.Fd()) {
+		return ShowDiffTUI(output)
+	}
+
+	// non-interactive
+	fmt.Print(output)
 	return nil
 }
 
@@ -91,8 +109,6 @@ func DiffCommits(from, to string) error {
 		return fmt.Errorf("load %s: %w", to, err)
 	}
 
-	fmt.Printf("🔍 Comparing %s..%s\n\n", fromCommit.ShortHash(), toCommit.ShortHash())
-
 	envDiff, fileDiff := diff.CompareSnapshots(&fromCommit.Snapshot, &toCommit.Snapshot)
 
 	if envDiff.IsEmpty() && fileDiff.IsEmpty() {
@@ -100,13 +116,26 @@ func DiffCommits(from, to string) error {
 		return nil
 	}
 
+	// Render to string
+	var sb strings.Builder
+	sb.WriteString(fmt.Sprintf("🔍 Comparing %s..%s\n\n", fromCommit.ShortHash(), toCommit.ShortHash()))
+
 	if !fileDiff.IsEmpty() {
-		diff.RenderFileDiff(os.Stdout, fileDiff)
+		diff.RenderFileDiff(&sb, fileDiff)
 	}
 
 	if !envDiff.IsEmpty() {
-		diff.RenderEnvDiff(os.Stdout, envDiff)
+		diff.RenderEnvDiff(&sb, envDiff)
 	}
 
+	output := sb.String()
+
+	// interactive mode
+	if isatty.IsTerminal(os.Stdout.Fd()) {
+		return ShowDiffTUI(output)
+	}
+
+	// non-interactive
+	fmt.Print(output)
 	return nil
 }

@@ -5,7 +5,10 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"sort"
 	"time"
+
+	"github.com/mattn/go-isatty"
 
 	"trace/internal/config"
 	"trace/internal/core"
@@ -59,8 +62,36 @@ func Restore(opts RestoreOptions) error {
 
 	// Determine which files to restore
 	filesToRestore := make(map[string]string)
-	if len(opts.Files) > 0 {
-		// Restore specific files
+
+	// Interactive Mode: If no files specified and running in a terminal
+	if len(opts.Files) == 0 && isatty.IsTerminal(os.Stdout.Fd()) {
+		// Collect all available files from commit
+		var available []string
+		for f := range commit.Snapshot.Files {
+			available = append(available, f)
+		}
+		sort.Strings(available)
+
+		// Launch TUI
+		selected, err := InteractiveRestoreSelection(available)
+		if err != nil {
+			return fmt.Errorf("interactive selection: %w", err)
+		}
+
+		if len(selected) == 0 {
+			fmt.Println("No files selected. Restore cancelled.")
+			return nil
+		}
+
+		// Use selected files
+		for _, f := range selected {
+			if hash, ok := commit.Snapshot.Files[f]; ok {
+				filesToRestore[f] = hash
+			}
+		}
+
+	} else if len(opts.Files) > 0 {
+		// Restore specific files provided via args
 		for _, file := range opts.Files {
 			path := filepath.Clean(file)
 			hash, exists := commit.Snapshot.Files[path]
@@ -71,7 +102,7 @@ func Restore(opts RestoreOptions) error {
 			filesToRestore[path] = hash
 		}
 	} else {
-		// Restore all tracked files
+		// Restore all tracked files (Script/Non-Interactive mode)
 		filesToRestore = commit.Snapshot.Files
 	}
 

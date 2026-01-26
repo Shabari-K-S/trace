@@ -43,8 +43,26 @@ func ShouldIgnore(path string) (bool, error) {
 
 		// Use filepath.Match for glob support
 		matched, _ := filepath.Match(line, relPath)
-		if matched || line == relPath {
+		if matched {
 			return true, nil
+		}
+
+		// Exact match
+		if line == relPath {
+			return true, nil
+		}
+
+		// Directory prefix match (e.g. "temp/" should match "temp/file" and "temp")
+		if strings.HasSuffix(line, string(os.PathSeparator)) {
+			dirPrefix := line
+			// If relPath is inside dirPrefix
+			if strings.HasPrefix(relPath, dirPrefix) {
+				return true, nil
+			}
+			// If relPath IS the directory (ignoring trailing slash)
+			if relPath == strings.TrimSuffix(dirPrefix, string(os.PathSeparator)) {
+				return true, nil
+			}
 		}
 	}
 
